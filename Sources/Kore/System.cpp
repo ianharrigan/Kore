@@ -7,12 +7,10 @@
 #include <limits>
 #include <string.h>
 
-#ifndef KORE_HTML5
-#ifndef KORE_ANDROID
+#if !defined(KORE_HTML5) && !defined(KORE_ANDROID) && !defined(KORE_WINDOWS) && !defined(KORE_CONSOLE)
 double Kore::System::time() {
 	return timestamp() / frequency();
 }
-#endif
 #endif
 
 #if !defined(KORE_WINDOWS) && !defined(KORE_MACOS) && !defined(KORE_LINUX) && !defined(KORE_HTML5) && !defined(KORE_PI)
@@ -219,16 +217,19 @@ void Kore::System::stop() {
 	//}
 }
 
+bool Kore::System::frame() {
+	callback();
+	handleMessages();
+	return appstate::running;
+}
+
 void Kore::System::start() {
 	appstate::running = true;
 
-#if !defined(KORE_HTML5) && !defined(KORE_TIZEN)
+#if !defined(KORE_HTML5) && !defined(KORE_TIZEN) && !defined(KORE_XBOX_ONE)
 	// if (Graphics::hasWindow()) Graphics::swapBuffers();
 
-	while (appstate::running) {
-		callback();
-		handleMessages();
-	}
+	while (frame()) { }
 	_shutdown();
 #endif
 }

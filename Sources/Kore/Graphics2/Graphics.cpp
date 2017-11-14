@@ -866,13 +866,13 @@ void Graphics2::Graphics2::drawImage(Graphics4::Texture* img, float x, float y) 
 	float32x4 yy = load(yh, y, y, yh);
 
 	float32x4 _00 = loadAll(transformation.get(0, 0));
-	float32x4 _01 = loadAll(transformation.get(0, 1));
-	float32x4 _02 = loadAll(transformation.get(0, 2));
-	float32x4 _10 = loadAll(transformation.get(1, 0));
+	float32x4 _01 = loadAll(transformation.get(1, 0));
+	float32x4 _02 = loadAll(transformation.get(2, 0));
+	float32x4 _10 = loadAll(transformation.get(0, 1));
 	float32x4 _11 = loadAll(transformation.get(1, 1));
-	float32x4 _12 = loadAll(transformation.get(1, 2));
-	float32x4 _20 = loadAll(transformation.get(2, 0));
-	float32x4 _21 = loadAll(transformation.get(2, 1));
+	float32x4 _12 = loadAll(transformation.get(2, 1));
+	float32x4 _20 = loadAll(transformation.get(0, 2));
+	float32x4 _21 = loadAll(transformation.get(1, 2));
 	float32x4 _22 = loadAll(transformation.get(2, 2));
 
 	// matrix multiply
@@ -905,13 +905,13 @@ void Graphics2::Graphics2::drawImage(Graphics4::RenderTarget* img, float x, floa
 	float32x4 yy = load(yh, y, y, yh);
 
 	float32x4 _00 = loadAll(transformation.get(0, 0));
-	float32x4 _01 = loadAll(transformation.get(0, 1));
-	float32x4 _02 = loadAll(transformation.get(0, 2));
-	float32x4 _10 = loadAll(transformation.get(1, 0));
+	float32x4 _01 = loadAll(transformation.get(1, 0));
+	float32x4 _02 = loadAll(transformation.get(2, 0));
+	float32x4 _10 = loadAll(transformation.get(0, 1));
 	float32x4 _11 = loadAll(transformation.get(1, 1));
-	float32x4 _12 = loadAll(transformation.get(1, 2));
-	float32x4 _20 = loadAll(transformation.get(2, 0));
-	float32x4 _21 = loadAll(transformation.get(2, 1));
+	float32x4 _12 = loadAll(transformation.get(2, 1));
+	float32x4 _20 = loadAll(transformation.get(0, 2));
+	float32x4 _21 = loadAll(transformation.get(1, 2));
 	float32x4 _22 = loadAll(transformation.get(2, 2));
 
 	// matrix multiply
@@ -999,8 +999,8 @@ void Graphics2::Graphics2::drawLine(float x1, float y1, float x2, float y2, floa
 	vec.setLength(strength);
 	vec3 p1 = vec3(x1 + 0.5f * vec.x(), y1 + 0.5f * vec.y(), 1.0f);
 	vec3 p2 = vec3(x2 + 0.5f * vec.x(), y2 + 0.5f * vec.y(), 1.0f);
-	vec3 p3 = p1 - vec;
-	vec3 p4 = p2 - vec;
+	vec3 p3 = vec3(p1.x() - vec.x(), p1.y() - vec.y(), 1.0f);
+	vec3 p4 = vec3(p2.x() - vec.x(), p2.y() - vec.y(), 1.0f);
 
 	p1 = transformation * p1;
 	p2 = transformation * p2;

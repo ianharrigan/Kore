@@ -41,6 +41,7 @@ ID3D12RootSignature* rootSignature;
 //ID3D12GraphicsCommandList* commandList;
 ID3D12Resource* depthStencilTexture;
 ID3D12CommandQueue* commandQueue;
+IDXGISwapChain* swapChain;
 
 int renderTargetWidth;
 int renderTargetHeight;
@@ -65,7 +66,7 @@ struct RenderEnvironment {
 };
 
 #ifndef KORE_WINDOWS
-void createSwapChain(RenderEnvironment* env, IDXGIAdapter* adapter, const DXGI_SWAP_CHAIN_DESC1* desc);
+void createSwapChain(RenderEnvironment* env, const DXGI_SWAP_CHAIN_DESC1* desc);
 #endif
 
 namespace {
@@ -78,7 +79,6 @@ namespace {
 	UINT64 fenceValues[QUEUE_SLOT_COUNT];
 	HANDLE frameFenceEvents[QUEUE_SLOT_COUNT];
 	ID3D12Fence* frameFences[QUEUE_SLOT_COUNT];
-	IDXGISwapChain* swapChain;
 	ID3D12Fence* uploadFence;
 	ID3D12GraphicsCommandList* initCommandList;
 	ID3D12CommandAllocator* initCommandAllocator;
@@ -100,28 +100,16 @@ namespace {
 		DXGI_SWAP_CHAIN_DESC swapChainDescCopy = *swapChainDesc;
 		affirm(dxgiFactory->CreateSwapChain(result.queue, &swapChainDescCopy, &result.swapChain));
 #else
-		createSwapChain(&result, adapter, swapChainDesc);
+		createSwapChain(&result, swapChainDesc);
 #endif
 		return result;
 	}
 
 	void waitForFence(ID3D12Fence* fence, UINT64 completionValue, HANDLE waitEvent) {
 		if (fence->GetCompletedValue() < completionValue) {
-			fence->SetEventOnCompletion(completionValue, waitEvent);
+			affirm(fence->SetEventOnCompletion(completionValue, waitEvent));
 			WaitForSingleObject(waitEvent, INFINITE);
 		}
-	}
-
-	void createRenderTargetView(ID3D12Resource* renderTarget, ID3D12DescriptorHeap* renderTargetDescriptorHeap) {
-		const D3D12_RESOURCE_DESC resourceDesc = renderTarget->GetDesc();
-
-		D3D12_RENDER_TARGET_VIEW_DESC viewDesc;
-		viewDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-		viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-		viewDesc.Texture2D.MipSlice = 0;
-		viewDesc.Texture2D.PlaneSlice = 0;
-
-		device->CreateRenderTargetView(renderTarget, &viewDesc, renderTargetDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	}
 
 	void setupSwapChain() {
@@ -167,7 +155,7 @@ namespace {
 
 	void createDeviceAndSwapChain(int width, int height, HWND window) {
 #ifdef _DEBUG
-		ID3D12Debug* debugController;
+		ID3D12Debug* debugController = nullptr;
 		D3D12GetDebugInterface(IID_GRAPHICS_PPV_ARGS(&debugController));
 		debugController->EnableDebugLayer();
 #endif
@@ -376,8 +364,6 @@ void Graphics5::begin(RenderTarget* renderTarget, int window) {
 	began = true;
 
 	currentBackBuffer = (currentBackBuffer + 1) % QUEUE_SLOT_COUNT;
-	swapChain->GetBuffer(currentBackBuffer, IID_GRAPHICS_PPV_ARGS(&renderTarget->renderTarget));
-	createRenderTargetView(renderTarget->renderTarget, renderTarget->renderTargetDescriptorHeap);
 
 	const UINT64 fenceValue = currentFenceValue;
 	commandQueue->Signal(frameFences[currentBackBuffer], fenceValue);
@@ -413,7 +399,7 @@ unsigned Graphics5::refreshRate() {
 }
 
 bool Graphics5::swapBuffers(int window) {
-	swapChain->Present(1, 0);
+	affirm(swapChain->Present(1, 0));
 	return true;
 }
 

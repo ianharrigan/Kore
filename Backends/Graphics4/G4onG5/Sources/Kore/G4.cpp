@@ -16,8 +16,8 @@ using namespace Kore;
 Graphics5::CommandList* commandList;
 
 namespace {
-	const int bufferCount = 1;
-	int currentBuffer = 0;
+	const int bufferCount = 3;
+	int currentBuffer = -1;
 	Graphics5::RenderTarget* framebuffers[bufferCount];
 }
 
@@ -29,7 +29,7 @@ void Graphics4::init(int window, int depthBufferBits, int stencilBufferBits, boo
 	Graphics5::init(window, depthBufferBits, stencilBufferBits, vsync);
 	commandList = new Graphics5::CommandList;
 	for (int i = 0; i < bufferCount; ++i) {
-		framebuffers[i] = new Graphics5::RenderTarget(System::windowWidth(window), System::windowHeight(window), depthBufferBits);
+		framebuffers[i] = new Graphics5::RenderTarget(System::windowWidth(window), System::windowHeight(window), depthBufferBits, false, Graphics5::Target32Bit, -1, -i - 1 /* hack in an index for backbuffer render targets */);
 	}
 }
 
@@ -213,10 +213,13 @@ void Graphics4::setRenderTargetFace(RenderTarget* texture, int face) {
 
 void Graphics4::setVertexBuffers(VertexBuffer** buffers, int count) {
 	Graphics5::VertexBuffer* g5buffers[16];
+	int offsets[16];
 	for (int i = 0; i < count; ++i) {
 		g5buffers[i] = &buffers[i]->_buffer;
+		int index = buffers[i]->_currentIndex == 0 ? buffers[i]->_multiple - 1 : buffers[i]->_currentIndex - 1;
+		offsets[i] = index * buffers[i]->count();
 	}
-	commandList->setVertexBuffers(g5buffers, count);
+	commandList->setVertexBuffers(g5buffers, offsets, count);
 }
 
 void Graphics4::setIndexBuffer(IndexBuffer& buffer) {
@@ -256,6 +259,27 @@ void Graphics4::getQueryResults(uint occlusionQuery, uint* pixelCount) {
 }
 
 void Graphics4::setPipeline(PipelineState* pipeline) {
+	CullMode cullMode;
+
+	bool depthWrite;
+	ZCompareMode depthMode;
+
+	pipeline->_pipeline->stencilMode = (Graphics5::ZCompareMode)pipeline->stencilMode;
+	pipeline->_pipeline->stencilBothPass = (Graphics5::StencilAction)pipeline->stencilBothPass;
+	pipeline->_pipeline->stencilDepthFail = (Graphics5::StencilAction)pipeline->stencilDepthFail;
+	pipeline->_pipeline->stencilFail = (Graphics5::StencilAction)pipeline->stencilFail;
+	pipeline->_pipeline->stencilReferenceValue = pipeline->stencilReferenceValue;
+	pipeline->_pipeline->stencilReadMask = pipeline->stencilReadMask;
+	pipeline->_pipeline->stencilWriteMask = pipeline->stencilWriteMask;
+	pipeline->_pipeline->blendSource = (Graphics5::BlendingOperation)pipeline->blendSource;
+	pipeline->_pipeline->blendDestination = (Graphics5::BlendingOperation)pipeline->blendDestination;
+	pipeline->_pipeline->alphaBlendSource = (Graphics5::BlendingOperation)pipeline->alphaBlendSource;
+	pipeline->_pipeline->alphaBlendDestination = (Graphics5::BlendingOperation)pipeline->alphaBlendDestination;
+	pipeline->_pipeline->colorWriteMaskRed = pipeline->colorWriteMaskRed;
+	pipeline->_pipeline->colorWriteMaskGreen = pipeline->colorWriteMaskGreen;
+	pipeline->_pipeline->colorWriteMaskBlue = pipeline->colorWriteMaskBlue;
+	pipeline->_pipeline->colorWriteMaskAlpha = pipeline->colorWriteMaskAlpha;
+	pipeline->_pipeline->conservativeRasterization = pipeline->conservativeRasterization;
 	commandList->setPipeline(pipeline->_pipeline);
 }
 

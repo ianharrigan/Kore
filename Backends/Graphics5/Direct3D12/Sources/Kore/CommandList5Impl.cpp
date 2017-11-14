@@ -135,7 +135,7 @@ void CommandList::drawIndexedVertices(int start, int count) {
 	_commandList->SetGraphicsRootConstantBufferView(2, fragmentConstantBuffers[currentBackBuffer * 128 + currentInstance]->GetGPUVirtualAddress());
 	if (++currentInstance >= 128) currentInstance = 0;
 
-	_commandList->DrawIndexedInstanced(count, 1, 0, 0, 0);
+	_commandList->DrawIndexedInstanced(count, 1, start, 0, 0);
 }
 
 void CommandList::viewport(int x, int y, int width, int height) {
@@ -167,7 +167,8 @@ void CommandList::setPipeline(PipelineState* pipeline) {
 	_commandList->SetPipelineState(pipeline->pso);
 }
 
-void CommandList::setVertexBuffers(VertexBuffer** buffers, int count) {
+void CommandList::setVertexBuffers(VertexBuffer** buffers, int* offsets, int count) {
+	buffers[0]->view.BufferLocation = buffers[0]->uploadBuffer->GetGPUVirtualAddress() + offsets[0] * buffers[0]->stride();
 	_commandList->IASetVertexBuffers(0, 1, (D3D12_VERTEX_BUFFER_VIEW*)&buffers[0]->view);
 }
 

@@ -7,11 +7,16 @@
 #include <Kore/Log.h>
 #include <Kore/WinError.h>
 
+#ifdef KORE_WINDOWS
+#include <dxgi1_4.h>
+#endif
+
 using namespace Kore;
 
 static const int textureCount = 16;
 extern Graphics5::Texture* currentTextures[textureCount];
 extern Graphics5::RenderTarget* currentRenderTargets[textureCount];
+extern IDXGISwapChain* swapChain;
 
 namespace {
 	ID3D12Fence* renderFence;
@@ -21,6 +26,22 @@ namespace {
 			fence->SetEventOnCompletion(completionValue, waitEvent);
 			WaitForSingleObject(waitEvent, INFINITE);
 		}
+	}
+
+	void createRenderTargetView(ID3D12Resource* renderTarget, ID3D12DescriptorHeap* renderTargetDescriptorHeap) {
+		const D3D12_RESOURCE_DESC resourceDesc = renderTarget->GetDesc();
+
+		D3D12_RENDER_TARGET_VIEW_DESC viewDesc;
+#ifdef KORE_WINDOWS
+		viewDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+#else
+		viewDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+#endif
+		viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+		viewDesc.Texture2D.MipSlice = 0;
+		viewDesc.Texture2D.PlaneSlice = 0;
+
+		device->CreateRenderTargetView(renderTarget, &viewDesc, renderTargetDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	}
 }
 
@@ -97,6 +118,11 @@ Graphics5::RenderTarget::RenderTarget(int width, int height, int depthBufferBits
 
 	scissor = {0, 0, width, height};
 	viewport = {0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f};
+
+	if (contextId < 0) { // encoded backbuffer index
+		swapChain->GetBuffer(-contextId - 1, IID_GRAPHICS_PPV_ARGS(&renderTarget));
+		createRenderTargetView(renderTarget, renderTargetDescriptorHeap);
+	}
 }
 
 Graphics5::RenderTarget::RenderTarget(int cubeMapSize, int depthBufferBits, bool antialiasing, RenderTargetFormat format, int stencilBufferBits, int contextId) {

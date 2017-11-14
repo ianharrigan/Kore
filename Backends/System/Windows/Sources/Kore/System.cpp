@@ -21,7 +21,7 @@
 #include <wbemidl.h>
 
 #ifdef KORE_OCULUS
-#include "Vr/VrInterface.h"
+#include "Kore/Vr/VrInterface.h"
 #endif
 
 #define WIN32_LEAN_AND_MEAN
@@ -981,7 +981,13 @@ int createWindow(const wchar_t* title, int x, int y, int width, int height, Wind
 	//::windows[0] = new W32KoreWindow((HWND)VrInterface::Init(inst));
 	int dstx = 0;
 	int dsty = 0;
-	HWND hwnd = (HWND)VrInterface::init(inst, title, windowClassName);
+
+	char titleutf8[1024];
+	char classNameutf8[1024];
+	WideCharToMultiByte(CP_UTF8, 0, title, -1, titleutf8, 1024 - 1, nullptr, nullptr);
+	WideCharToMultiByte(CP_UTF8, 0, windowClassName, -1, classNameutf8, 1024 - 1, nullptr, nullptr);
+
+	HWND hwnd = (HWND)VrInterface::init(inst, titleutf8, classNameutf8);
 #else
 
 	if (windowCounter == 0) {
@@ -1291,6 +1297,8 @@ const char* Kore::System::savePath() {
 
 namespace {
 	const char* videoFormats[] = {"ogv", nullptr};
+	LARGE_INTEGER frequency;
+	LARGE_INTEGER startCount;
 }
 
 const char** Kore::System::videoFormats() {
@@ -1298,20 +1306,27 @@ const char** Kore::System::videoFormats() {
 }
 
 double Kore::System::frequency() {
-	ticks rate;
-	QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&rate));
-	return (double)rate;
+	return (double)::frequency.QuadPart;
 }
 
 Kore::System::ticks Kore::System::timestamp() {
-	ticks stamp;
-	QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&stamp));
-	return stamp;
+	LARGE_INTEGER stamp;
+	QueryPerformanceCounter(&stamp);
+	return stamp.QuadPart - startCount.QuadPart;
+}
+
+double Kore::System::time() {
+	LARGE_INTEGER stamp;
+	QueryPerformanceCounter(&stamp);
+	return double(stamp.QuadPart - startCount.QuadPart) / (double)::frequency.QuadPart;
 }
 
 int WINAPI WinMain(HINSTANCE /*hInstance*/, HINSTANCE /*hPrevInstance*/, LPSTR lpCmdLine, int /*nCmdShow*/) {
 	initKeyTranslation();
 	for (int i = 0; i < 256; ++i) keyPressed[i] = false;
+
+	QueryPerformanceCounter(&startCount);
+	QueryPerformanceFrequency(&::frequency);
 
 	int argc = 1;
 	for (unsigned i = 0; i < strlen(lpCmdLine); ++i) {

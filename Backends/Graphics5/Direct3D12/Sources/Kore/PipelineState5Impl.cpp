@@ -169,14 +169,18 @@ void Graphics5::PipelineState::compile() {
 	psoDesc.PS.pShaderBytecode = fragmentShader->data;
 	psoDesc.pRootSignature = rootSignature;
 	psoDesc.NumRenderTargets = 1;
+#ifdef KORE_WINDOWS
 	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+#else
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+#endif
 	psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
 	psoDesc.InputLayout.NumElements = inputLayout[0]->size;
 	psoDesc.InputLayout.pInputElementDescs = vertexDesc;
 
 	psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-	psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
+	psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 	psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
 	psoDesc.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
 	psoDesc.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
